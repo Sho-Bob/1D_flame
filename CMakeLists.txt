@@ -10,3 +10,8 @@ src/solver.cpp
 # src/reconstruction.cpp 
 src/vtk_writer.cpp
 )
+
+find_package(OpenMP REQUIRED)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(Burgers1D PUBLIC OpenMP::OpenMP_CXX)
+endif()
