@@ -105,10 +105,10 @@ void LinearAdvectionSolver::output() {
   }
 
   std::vector<double> phi_vec(this->n[0]);
-  FOR_ICV(0) phi_vec[icv] = this->phi[this->num_boundary_points + icv];
+  FOR_ICV(0) phi_vec[icv - this->num_boundary_points] = this->phi[icv];
 
   IO::write_structured_mesh_timestep("LinearAdvectionSolver.h5",
       this->step,
       phi_vec,
-      this->n[0], this->n[1], this->n[2]);
+      this->n[0], 1, 1);
 } // end output

@@ -33,6 +33,7 @@ void write_structured_mesh_timestep(const std::string& filename,
                                        PredType::NATIVE_DOUBLE,
                                        space);
     dset.write(pressure.data(), PredType::NATIVE_DOUBLE);
+
 } // end of write_structured_mesh_timestep
 
 } // namespace IO
