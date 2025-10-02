@@ -1,10 +1,20 @@
 #include "reconstruction.h"
+#include "common.h"
 // #include "limiter.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <omp.h>
 #include <cassert>
+
+void Reconstruction::first_order(const double* u, double* uL, double* uR) {
+  FOR_IFA(0) {
+    int icv0 = this->mesh->get_icv0(ifa);
+    int icv1 = this->mesh->get_icv1(ifa);
+    uL[ifa] = u[icv0];
+    uR[ifa] = u[icv1];
+  }
+}
 
 void reconstruct_WENOJS(
     const std::vector<double>& u,

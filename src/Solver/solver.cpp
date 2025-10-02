@@ -1,11 +1,115 @@
 #include "solver.h"
 // #include "limiter.h"
 #include "vtk_writer.h"
+#include "reconstruction.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <omp.h>
+#include <iostream>
 #include <cassert>
+
+void Solver::run_solver(){
+  // initialize solver; set up grid, initial condition
+  this->initialize();
+
+  // time-stepping loop
+  for (int step = 0; step < 1000; ++step) {
+    this->step = step;
+
+    for (int v = 0; v < this->num_vars; ++v) {
+      FOR_ICV_G(0) this->conservatives_old[v][icv] = this->conservatives[v][icv];
+    }
+
+    for (int idrk = 0; idrk < 3; ++idrk) {
+      // \brief: reconstruction, apply BC
+      this->pre_rhs();
+      // \brief: calculate the rhs
+      this->rhs();
+      // \brief: update conservatives based on rk step
+      this->update_conservatives(idrk);
+
+    }
+    // \brief: update conservatives
+    this->output();
+
+    // advance time
+    this->t += this->dt;
+    // printf("Step %d, Time = %f\n", step, this->t);
+  }
+
+}
+
+void Solver::initialize(){
+    // to be implemented in derived classes
+  std::cout << "Base class initialize()" << std::endl;
+}
+
+void Solver::apply_bc(){
+    // to be implemented in derived classes
+  std::cout << "Base class apply_bc()" << std::endl;
+}
+
+void Solver::initialize_grid(){
+  // TODO: implement TOML reading of these things
+  // for now, just hardcode some values
+  this->num_dim = 1; 
+  this->num_boundary_points = 4; // ghost cells
+  this->nx = 101;
+  this->x0 = 0.0; this->x1 = 1.0;
+  this->mesh = new Grid(this->nx, this->num_boundary_points, this->x0, this->x1);
+  // Initialize and set pointers
+  this->n = this->mesh->get_n_ptr();
+  this->n_tot = this->mesh->get_n_tot_ptr();
+  this->coordinates = this->mesh->get_coordinates();
+  this->Delta = this->mesh->get_Delta_ptr();
+  this->dx = this->Delta[0];
+
+  // pass grid to reconstruction
+  this->reconstruction = new Reconstruction(this->mesh);
+} // end initialize_grid
+
+void Solver::initialize_profile(){
+} // end initialize_profile
+
+// ==============================================================
+// \brief: gradient computation and face reconstruction
+// ==============================================================
+void Solver::pre_rhs() {
+  for (int v = 0; v < this->num_vars; ++v) {
+    FOR_ICV_G(v) this->rhs_conservatives[v][icv] = 0.0;
+  }
+} // end pre_rhs
+
+
+// ==============================================================
+// \brief: loop over all cells to compute the rhs
+// ==============================================================
+void Solver::rhs() {
+} // end rhs
+
+// ==============================================================
+// \brief: update the conservatives after calculating the rhs
+// ==============================================================
+void Solver::update_conservatives(const int idrk) {
+  for (int v = 0; v < this->num_vars; ++v) {
+    FOR_ICV(0) {
+      int i = icv;
+      if (idrk == 0) { // stage 1
+        this->conservatives[v][i] += this->dt / this->dx * this->rhs_conservatives[v][i];
+      } else if (idrk == 1) { // stage 2
+        this->conservatives[v][i] = 0.75 * this->conservatives_old[v][i] + 0.25 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i]);
+      } else if (idrk == 2) {
+        this->conservatives[v][i] = (this->conservatives_old[v][i] + 2.0 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i])) / 3.0;
+      }
+      if (this->conservatives[v][i] != this->conservatives[v][i]) {
+        std::cerr << "NaN detected in conservatives at cell " << i << " variable " << v << std::endl;
+        std::cout << this->rhs_conservatives[v][i] << std::endl;
+        assert( false);
+      }
+    } // end of loop over icv
+  }
+} // end update_conservatives
 
 void burgers_initialize(std::vector<double>& u, int N, double x0, double x1, double dx, int ibd){
     #pragma omp parallel for

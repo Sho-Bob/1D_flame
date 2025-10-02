@@ -24,3 +24,27 @@ void write_vtk(const std::vector<double>& u, double dx, const std::string& filen
 
     file.close();
 }
+
+void write_dat(const std::string& filename, const std::vector<std::vector<double>>& data, const std::vector<std::string>& var_names) {
+    std::ofstream file(filename);
+    int N = data[0].size();
+    int num_vars = data.size();
+
+    // Write header
+    for (int v = 0; v < num_vars; ++v) {
+        file << var_names[v];
+        if (v < num_vars - 1) file << "\t";
+    }
+    file << "\n";
+
+    // Write data
+    for (int i = 0; i < N; ++i) {
+        for (int v = 0; v < num_vars; ++v) {
+            file << std::fixed << std::setprecision(6) << data[v][i];
+            if (v < num_vars - 1) file << "\t";
+        }
+        file << "\n";
+    }
+
+    file.close();
+}
