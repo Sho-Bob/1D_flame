@@ -1,7 +1,8 @@
 #include "solver_burgers.h"
 // #include "limiter.h"
-#include "vtk_writer.h"
-#include "reconstruction.h"
+#include "IO/vtk_writer.h"
+#include "Numerics/reconstruction.h"
+
 #include <vector>
 #include <cmath>
 #include <algorithm>

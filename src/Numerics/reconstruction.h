@@ -2,7 +2,7 @@
 #define RECONSTRUCTION_H
 
 #include <vector>
-#include "grid.h"
+#include "Grid/grid.h"
 
 class Reconstruction {
   public:

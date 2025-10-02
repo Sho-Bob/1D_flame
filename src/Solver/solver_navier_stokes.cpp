@@ -1,7 +1,7 @@
 #include "solver_navier_stokes.h"
 // #include "limiter.h"
-#include "vtk_writer.h"
-#include "reconstruction.h"
+#include "IO/vtk_writer.h"
+#include "Numerics/reconstruction.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -9,23 +9,31 @@
 #include <iostream>
 #include <cassert>
 
+// ==============================================================
+// \brief: initialize multispecies solver
+// ==============================================================
 void NavierStokesSolver::initialize(){
-// #pragma omp parallel for
-//   for(int i = ibd; i < N+ibd; i++){
-//     double x = x0 + (i-ibd) * dx;
-//     u[i] = std::sin(2.0 * M_PI * x);
-//   }
-//   Apply_BC(u,N,ibd);
 }
 
+// ==============================================================
+// \brief: enforce boundary conditions weakly by filling ghost cells
+// ==============================================================
 void NavierStokesSolver::apply_bc(){
-//   /// Neumann boundary conditions
-// #pragma omp parallel for
-//   for (int i=0; i<ibd; i++){
-//     u[i] = u[ibd];
-//     u[N+ibd+i] = u[N+ibd-1];
-//   }
 }
 
+// ==============================================================
+// \brief: gradient computation and face reconstruction
+// ==============================================================
 void NavierStokesSolver::pre_rhs(){
 }
+
+// ==============================================================
+// \brief: loop over all internal faces to compute the rhs
+// ==============================================================
+void NavierStokesSolver::rhs(){
+
+} // end rhs
+
+void NavierStokesSolver::output(){
+} // end output
+

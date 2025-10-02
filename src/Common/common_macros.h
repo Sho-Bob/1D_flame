@@ -4,4 +4,6 @@
 #define FOR_ICV(iDim) for (int icv = this->num_boundary_points; icv < this->n[iDim] + this->num_boundary_points; ++icv)
 #define FOR_ICV_G(iDim) for (int icv = 0; icv < this->n[iDim] + 2 * this->num_boundary_points; ++icv)
 #define FOR_IFA(iDim) for (int ifa = 0; ifa < this->n[iDim] + 1; ++ifa)
+#define LOOP_l_N(N) for (int l = 0; l < N; ++l)
+#define LOOP_k_N(N) for (int k = 0; k < N; ++k)
 #endif // COMMON_MACROS_H

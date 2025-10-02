@@ -1,9 +1,8 @@
 add_library(numerics
-  reconstruction.cpp reconstruction.h)
+  reconstruction.cpp)
 
 target_include_directories(numerics PUBLIC
-  ../Common
-  ../Grid
+  ${PROJECT_INCLUDE_DIRS}
 )
 
 

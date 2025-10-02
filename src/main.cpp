@@ -1,11 +1,13 @@
 #include <iostream>
 #include <vector>
-#include "grid.h"
-#include <solver.h>
-#include <solver_burgers.h>
-#include <solver_linear_advection.h>
 #include <omp.h> 
-#include "vtk_writer.h"
+#include <string>
+
+#include "Solver/solver.h"
+#include "Solver/solver_burgers.h"
+#include "Solver/solver_linear_advection.h"
+#include "Solver/solver_navier_stokes.h"
+#include "IO/input.h"
 
 int main(){
     const int N = 101;
@@ -17,8 +19,24 @@ int main(){
     const double T_end = 1.0;
 
     // run solver
+    const std::string filename = "input.toml";
+    Input input(filename);
 
-    LinearAdvectionSolver solver;
-    solver.run_solver();
+    std::string solver_name = input.getStringParam("solver");
+
+    Solver* solver = nullptr;
+
+    if (solver_name == "burgers") {
+        solver = new BurgerSolver;
+    } else if (solver_name == "linear-advection") {
+        solver = new LinearAdvectionSolver;
+    } else if (solver_name == "navier-stokes") {
+        solver = new NavierStokesSolver;
+    } else {
+        std::cerr << "Unknown solver: " << solver_name << std::endl;
+        return -1;
+    }
+
+    solver->run_solver();
     return 0;
 }

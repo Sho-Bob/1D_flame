@@ -1,15 +1,12 @@
 add_library(solver 
-  solver.cpp solver.h
-  solver_burgers.cpp solver_burgers.h
-  solver_navier_stokes.cpp solver_navier_stokes.h
-  solver_linear_advection.cpp solver_linear_advection.h
+  solver.cpp
+  solver_burgers.cpp
+  solver_navier_stokes.cpp
+  solver_linear_advection.cpp
 )
 
 target_include_directories(solver PUBLIC 
-  ../IO
-  ../numerics
-  ../Grid
-  ../Common/
+  ${PROJECT_INCLUDE_DIRS}
 )
 
 target_link_libraries(solver numerics IO grid)

@@ -2,10 +2,10 @@
 #define SOLVER_H
 
 #include <vector>
-#include "grid.h"
-#include "reconstruction.h"
-#include "common.h"
-#include "hdf5_writer.h"
+#include "Grid/grid.h"
+#include "Numerics/reconstruction.h"
+#include "Common/common.h"
+#include "IO/hdf5_writer.h"
 
 class Solver { // base clas for Solver
 
