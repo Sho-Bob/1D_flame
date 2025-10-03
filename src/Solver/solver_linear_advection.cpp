@@ -17,6 +17,7 @@
 // ==============================================================
 void LinearAdvectionSolver::initialize(){
   std::cout << "LinearAdvectionSolver::initialize()" << std::endl;
+  Solver::initialize();
   this->num_vars = 1; // phi
   this->conservatives = new double*[this->num_vars];
   this->conservatives_old = new double*[this->num_vars];
@@ -40,19 +41,15 @@ void LinearAdvectionSolver::initialize(){
   FOR_ICV_G(0) {
     double x = this->coordinates[0][icv];
     if (x < 0.25 || x > 0.75)
-      this->phi[icv] = 0.0;
-    else {
       this->phi[icv] = 1.0;
+    else {
+      this->phi[icv] = 2.0;
     }
 
     // velocity field
     this->U[icv] = 1.0;
 
   }
-  this->dt = 0.10 * this->Delta[0] / 1.0;
-  double cfl = this->U[0] * this->dt / this->Delta[0];
-  printf("dt = %g\n", this->dt);
-  printf("CFL = %f\n", cfl);
 }
 
 void LinearAdvectionSolver::apply_bc(){
@@ -68,8 +65,8 @@ void LinearAdvectionSolver::pre_rhs(){
   Solver::pre_rhs();
 
   this->apply_bc();
-  this->reconstruction->first_order(this->phi, this->phiL, this->phiR);
-  this->reconstruction->first_order(this->U, this->UL, this->UR);
+  this->reconstruction->WENOJS(this->phi, this->phiL, this->phiR);
+  this->reconstruction->WENOJS(this->U, this->UL, this->UR);
 }
 
 void LinearAdvectionSolver::rhs(){
@@ -79,12 +76,6 @@ void LinearAdvectionSolver::rhs(){
     int icv0 = this->mesh->get_icv0(ifa);
     int icv1 = this->mesh->get_icv1(ifa);
 
-    // sanity check for U and phi
-    if (this->phiL[ifa] > 1.0 || this->phiL[ifa] < 0.0 ||
-        this->phiR[ifa] > 1.0 || this->phiR[ifa] < 0.0) {
-      std::cerr << "phi out of bounds at ifa = " << ifa << std::endl;
-      assert(false);
-    }
     // local lax-Friedrichs flux
     double fL = this->UL[ifa] * this->phiL[ifa];
     double fR = this->UR[ifa] * this->phiR[ifa];
@@ -99,10 +90,16 @@ void LinearAdvectionSolver::rhs(){
 } // end rhs
 
 void LinearAdvectionSolver::output() {
-  if (this->step % 10 != 0) return;
   if (this->step == 0) {
     IO::create_hdf5_file("LinearAdvectionSolver.h5");
+
+    // write mesh
+    IO::write_structured_mesh_timestep("LinearAdvectionSolver.h5",
+        this->coordinates[0] + this->num_boundary_points,
+        this->n[0], 1, 1, "x");
   }
+
+  if (this->step % this->input->getIntParam("output_interval") != 0) return;
 
   std::vector<double> phi_vec(this->n[0]);
   FOR_ICV(0) phi_vec[icv - this->num_boundary_points] = this->phi[icv];

@@ -17,6 +17,84 @@ void Reconstruction::first_order(const double* u, double* uL, double* uR) {
   }
 }
 
+void Reconstruction::WENOJS(const double* u, double* uL, double* uR) {
+  FOR_IFA(0) {
+    // =========================================================
+    // construct for ifa = i+1/2
+    //           i+1/2
+    // --o--|--o--|--o--|--o--|--o--|--o--
+    //  i-2   i-1    i    i+1   i+2   i+3
+    // =========================================================
+    int icv_i      = this->mesh->get_icv0(ifa);     // left cell index
+    int icv_iPlus1 = this->mesh->get_icv1(ifa);     // right cell index
+    int icv_iMinus1 = icv_i - 1;
+    int icv_iMinus2 = icv_i - 2;
+    int icv_iPlus2  = icv_iPlus1 + 1;
+    int icv_iPlus3  = icv_iPlus1 + 2;
+
+    // ---------------------------------------------------------
+    // Left state reconstruction at i+1/2 (biased to the left)
+    // ---------------------------------------------------------
+    double v0 = u[icv_iMinus2];
+    double v1 = u[icv_iMinus1];
+    double v2 = u[icv_i];
+    double v3 = u[icv_iPlus1];
+    double v4 = u[icv_iPlus2];
+
+    // candidate polynomials
+    double p0 = ( 2.0*v0 - 7.0*v1 + 11.0*v2 ) / 6.0;
+    double p1 = ( -1.0*v1 + 5.0*v2 + 2.0*v3 ) / 6.0;
+    double p2 = ( 2.0*v2 + 5.0*v3 - 1.0*v4 ) / 6.0;
+
+    // smoothness indicators β_k
+    double beta0 = (13.0/12.0)*pow(v0 - 2*v1 + v2, 2) + (1.0/4.0)*pow(v0 - 4*v1 + 3*v2, 2);
+    double beta1 = (13.0/12.0)*pow(v1 - 2*v2 + v3, 2) + (1.0/4.0)*pow(v1 - v3, 2);
+    double beta2 = (13.0/12.0)*pow(v2 - 2*v3 + v4, 2) + (1.0/4.0)*pow(3*v2 - 4*v3 + v4, 2);
+
+    // linear weights γ_k
+    double g0 = 0.1, g1 = 0.6, g2 = 0.3;
+    double eps = 1e-6;
+
+    // nonlinear weights ω_k
+    double a0 = g0 / pow(eps + beta0, 2);
+    double a1 = g1 / pow(eps + beta1, 2);
+    double a2 = g2 / pow(eps + beta2, 2);
+    double sum = a0 + a1 + a2;
+
+    double w0 = a0 / sum;
+    double w1 = a1 / sum;
+    double w2 = a2 / sum;
+
+    uL[ifa] = w0*p0 + w1*p1 + w2*p2;
+
+    // ---------------------------------------------------------
+    // Right state reconstruction at i+1/2 (biased to the right)
+    // mirror stencil
+    // ---------------------------------------------------------
+    double w0r, w1r, w2r;
+    {
+      double q0 = ( -1.0*v1 + 5.0*v2 + 2.0*v3 ) / 6.0;
+      double q1 = ( 2.0*v2 + 5.0*v3 - 1.0*v4 ) / 6.0;
+      double q2 = ( 11.0*v3 - 7.0*v4 + 2.0*u[icv_iPlus3] ) / 6.0;
+
+      double beta0r = (13.0/12.0)*pow(v1 - 2*v2 + v3, 2) + (1.0/4.0)*pow(v1 - 4*v2 + 3*v3, 2);
+      double beta1r = (13.0/12.0)*pow(v2 - 2*v3 + v4, 2) + (1.0/4.0)*pow(v2 - v4, 2);
+      double beta2r = (13.0/12.0)*pow(v3 - 2*v4 + u[icv_iPlus3], 2) + (1.0/4.0)*pow(3*v3 - 4*v4 + u[icv_iPlus3], 2);
+
+      double a0r = g0 / pow(eps + beta0r, 2);
+      double a1r = g1 / pow(eps + beta1r, 2);
+      double a2r = g2 / pow(eps + beta2r, 2);
+      double sumr = a0r + a1r + a2r;
+
+      w0r = a0r / sumr;
+      w1r = a1r / sumr;
+      w2r = a2r / sumr;
+
+      uR[ifa] = w0r*q0 + w1r*q1 + w2r*q2;
+    }
+  } // loop over ifa
+} // end WENOJS
+
 void reconstruct_WENOJS(
     const std::vector<double>& u,
     std::vector<double>& uL,  // uL[i] = u_{i-1/2}^L (left state at interface i)

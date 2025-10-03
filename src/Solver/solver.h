@@ -2,10 +2,13 @@
 #define SOLVER_H
 
 #include <vector>
+
 #include "Grid/grid.h"
 #include "Numerics/reconstruction.h"
 #include "Common/common.h"
 #include "IO/hdf5_writer.h"
+#include "IO/input.h"
+#include "Physics/PhysicsManager.h"
 
 class Solver { // base clas for Solver
 
@@ -31,7 +34,10 @@ class Solver { // base clas for Solver
     // output solution to file
     virtual void output() {};
   protected:
-
+    // =================================================
+    // Input
+    // =================================================
+    Input* input;
     // =================================================
     // grid parameters
     // =================================================
@@ -72,7 +78,14 @@ class Solver { // base clas for Solver
     double t_end; // end time
     int num_time_steps; // number of time steps
     int step; // current time step
+    int max_steps; // maximum number of time steps
     double t; // current time
+    double cfl; // CFL number
+    std::string time_stepping_scheme; // "fix_dt", "CFL"
+    // =================================================
+    // physics
+    // =================================================
+    Physics* Mixture;
 };
 
 void burgers_initialize(std::vector<double>& u, int N, double x0, double x1, double dx, int ibd);

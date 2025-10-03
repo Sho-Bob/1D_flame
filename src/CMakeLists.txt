@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 
 set(PROJECT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/)
 
+add_subdirectory(Common)
 add_subdirectory(Math)
 add_subdirectory(numerics)
 add_subdirectory(Physics)
@@ -29,3 +30,8 @@ target_include_directories(1D_flame PUBLIC
 )
 
 target_link_libraries(1D_flame solver grid IO)
+
+# variables for source directory
+set(SRC_DIR ${PROJECT_SOURCE_DIR}/)
+
+configure_file(${SRC_DIR}/config.h.in ${SRC_DIR}/config.h)

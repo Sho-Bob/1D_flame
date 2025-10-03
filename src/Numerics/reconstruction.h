@@ -13,6 +13,8 @@ class Reconstruction {
     }
 
     void first_order(const double* u, double* uL, double* uR);
+    void WENOJS(const double* u, double* uL, double* uR);
+
   protected:
     int nx;
     int* n;

@@ -12,11 +12,13 @@ namespace IO {
     file.close();
   }
 
-void write_structured_mesh_timestep(const std::string& filename,
-                                    int timestep,
-                                    const std::vector<double>& pressure,
-                                    hsize_t nx, hsize_t ny, hsize_t nz)
-{
+  void write_structured_mesh_timestep(const std::string& filename,
+      int timestep,
+      const std::vector<double>& u,
+      hsize_t nx, hsize_t ny, hsize_t nz,
+      const std::string var_name
+      )
+  {
     // Open or create file
     H5File file(filename, H5F_ACC_RDWR);
     // Create a group for this timestep
@@ -28,13 +30,32 @@ void write_structured_mesh_timestep(const std::string& filename,
     hsize_t dims[3] = {nx, ny, nz};
     DataSpace space(3, dims);
 
-    // Create and write pressure dataset
-    DataSet dset = group.createDataSet("pressure",
-                                       PredType::NATIVE_DOUBLE,
-                                       space);
-    dset.write(pressure.data(), PredType::NATIVE_DOUBLE);
+    // Create and write u dataset
+    DataSet dset = group.createDataSet(var_name,
+        PredType::NATIVE_DOUBLE,
+        space);
+    dset.write(u.data(), PredType::NATIVE_DOUBLE);
 
-} // end of write_structured_mesh_timestep
+  } // end of write_structured_mesh_timestep
 
+  void write_structured_mesh_timestep(const std::string& filename,
+      const double* data,
+      hsize_t nx, hsize_t ny, hsize_t nz,
+      const std::string var_name) {
+
+    // Open or create file
+    H5File file(filename, H5F_ACC_RDWR);
+    //
+    // Data dimensions
+    hsize_t dims[3] = {nx, ny, nz};
+    DataSpace space(3, dims);
+
+    // Create and write u dataset
+    DataSet dset = file.createDataSet(var_name,
+        PredType::NATIVE_DOUBLE,
+        space);
+    dset.write(data, PredType::NATIVE_DOUBLE);
+
+  }
 } // namespace IO
 

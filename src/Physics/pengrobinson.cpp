@@ -1,4 +1,5 @@
 #include "pengrobinson.h"
+#include "config.h"
 
 #include "Math/poly34.h"
 
@@ -9,7 +10,6 @@
 #include "boost/math/tools/roots.hpp"
 #include <Eigen/Dense>
 
-namespace Physics {
 
 #define SAFEGUARD(val, name) if (std::isnan(val) || std::isinf(val)) { std::cerr << "Critical error: " << name << " is not valid" << std::endl; throw(-1); }
 #define SAFEGUARDINFO(val, name) if (std::isnan(val) || std::isinf(val)) { printf("T, P, rho, Y[0] = %g, %g, %g, %g\n", this->T, this->P, this->rho, this->Y[0]); std::cerr << "Critical error: " << name << " is not valid" << std::endl; throw(-1); }
@@ -181,7 +181,8 @@ PengRobinson::~PengRobinson() = default;
 void PengRobinson::ReadNasaPolynomials() {
   // std::string nasa_poly_dbpath = common::testVariables::CharlesX_Data_Root
   //     + "/Data/Physics/RealFluid/nasa_poly.xml";
-  std::string nasa_poly_dbpath = "/Users/benkris/Documents/research/multiphase/nanoscale/src/NASAPOLY/nasa_poly.xml";
+  std::string nasa_poly_dbpath = SRC_DIR;
+  nasa_poly_dbpath += "/Data/nasa_poly.xml";
 
   std::vector<double> readFromXMLFile_low;
   std::vector<double> readFromXMLFile_high;
@@ -194,6 +195,7 @@ void PengRobinson::ReadNasaPolynomials() {
     pugi::xml_node
       species = xmlDoc.child("ctml").child("speciesData").first_child();
     while (species.attribute("name").value() != this->species[l]) {
+
       species = species.next_sibling();
     }
 
@@ -4266,4 +4268,3 @@ double PengRobinson::solveRachfordRice(const double* X_in, const double* x_in, c
   return beta_out;
 } // end of PengRobinson::solveRachfordRice
 // -------------------------------------------------------------------------------
-} // namespace Physics

@@ -16,9 +16,11 @@ void Solver::run_solver(){
   this->initialize();
 
   // time-stepping loop
-  for (int step = 0; step < 1000; ++step) {
-    this->step = step;
+  this->step = 0;
+  bool done = false;
+  while (!done) {
 
+    // adjust time step based on cfl condition
     for (int v = 0; v < this->num_vars; ++v) {
       FOR_ICV_G(0) this->conservatives_old[v][icv] = this->conservatives[v][icv];
     }
@@ -36,15 +38,30 @@ void Solver::run_solver(){
     this->output();
 
     // advance time
+    this->step++;
     this->t += this->dt;
-    // printf("Step %d, Time = %f\n", step, this->t);
+    printf("Step %d, Time = %f, dt = %f\n", this->step, this->t, this->dt);
+    done = (this->t > this->t_end || this->step > this->max_steps);
   }
 
 }
 
 void Solver::initialize(){
-    // to be implemented in derived classes
-  std::cout << "Base class initialize()" << std::endl;
+  // Read input file
+  this->input = new Input("input.toml");
+  
+  // get time stepping parameters
+  this->t_end = this->input->getDoubleParam("t_end");
+  this->max_steps = this->input->getIntParam("max_steps");
+  this->time_stepping_scheme = this->input->getStringParam("time_stepping_scheme");
+  if (this->time_stepping_scheme == "fix_dt") {
+    this->dt = this->input->getDoubleParam("dt");
+  } else if (this->time_stepping_scheme == "cfl") {
+    this->cfl = this->input->getDoubleParam("cfl");
+  } else {
+    throw std::runtime_error("Unknown time_stepping_scheme: " + this->time_stepping_scheme);
+  }
+
 }
 
 void Solver::apply_bc(){
@@ -95,6 +112,7 @@ void Solver::rhs() {
 // ==============================================================
 void Solver::update_conservatives(const int idrk) {
   for (int v = 0; v < this->num_vars; ++v) {
+#pragma omp parallel for
     FOR_ICV(0) {
       int i = icv;
       if (idrk == 0) { // stage 1

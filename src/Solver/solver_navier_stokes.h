@@ -9,6 +9,7 @@ class NavierStokesSolver : public Solver { // derived class for BurgerSolver
   public:
 
     void initialize() override;
+    void initialize_profile() override;
     void apply_bc() override;
     void pre_rhs() override;
     void rhs() override;
@@ -26,6 +27,10 @@ class NavierStokesSolver : public Solver { // derived class for BurgerSolver
     double* T; // temperature
     // additional variables
     double* sos; // speed of sound
+
+    // physics
+    std::vector<std::string> species_names;
+
 };
 
 #endif

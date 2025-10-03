@@ -9,6 +9,27 @@ Input::Input(const std::string filename) : filename(filename) {
   this->config = toml::parse_file(filename); // create the toml table
 }
 
+std::vector<std::string> Input::getStringArrayParam(const std::string& param_name) {
+  std::vector<std::string> result;
+  try {
+    auto arr = this->config[param_name].as_array();
+    if (arr) {
+      for (const auto& item : *arr) {
+        if (item.is_string()) {
+          result.push_back(item.value_or(""));
+        } else {
+          std::cerr << "Warning: Non-string item found in array for parameter '" << param_name << "'" << std::endl;
+        }
+      }
+    } else {
+      std::cerr << "Warning: Parameter '" << param_name << "' is not an array." << std::endl;
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "Error reading parameter '" << param_name << "': " << e.what() << std::endl;
+  }
+  return result;
+}
+
 std::string Input::getStringParam(const std::string& param_name) {
   std::string line;
   try {

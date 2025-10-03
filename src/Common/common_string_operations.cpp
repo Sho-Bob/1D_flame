@@ -1,5 +1,9 @@
 #include "common_string_operations.h"
 
+#include <cstring> // for strtok
+#include <cstdlib> // for atof
+#include <sstream> // for istringstream
+
 namespace common {
 
 std::vector<double> Tokenize(const std::string stringIn,
@@ -25,6 +29,16 @@ std::vector<double> Tokenize(const std::string stringIn,
 
   return outputVector;
 } // end Tokenize
+
+std::vector<std::string> splitString(const std::string& str, char delimiter) {
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream tokenStream(str);
+  while (std::getline(tokenStream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+  return tokens;
+} // end splitString
 
 } // end namespace common
 

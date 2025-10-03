@@ -2,13 +2,14 @@
 #define INPUT_H
 
 #include <string>
+#include <vector>
 #include <toml++/toml.h>  // Ensure toml++ headers are in your include path
-
 
 class Input {
   public:
     Input(const std::string filename);
     std::string getStringParam(const std::string& paramName);
+    std::vector<std::string> getStringArrayParam(const std::string& paramName);
     double getDoubleParam(const std::string& paramName);
     int getIntParam(const std::string& paramName);
   private:

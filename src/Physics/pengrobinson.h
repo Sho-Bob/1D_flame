@@ -4,7 +4,6 @@
 #include <vector>
 #include "Common/common.h"
 
-namespace Physics {
 class PengRobinson {
  public:
   PengRobinson();
@@ -38,7 +37,7 @@ class PengRobinson {
   // @brief: (mass-based) energy, density, and species; used after conservative variables are set
   void SetMixture_ERY(const double e, const double rho, const double* Y, const double T_guess = 300.0, const double P_guess = 1e5, const bool flash = false);
   // @brief: pressure, density, and species; used after using quasi-conservative methods such as double-flux
-  void SetMixture_PRY(const double P, const double rho, const double* Y, const double T_guess = 300.0, const bool flash = false);
+  void SetMixture_PRY(const double P, const double rho, const double* Y, const double T_guess = 300.0, const bool flash = true);
   void SetMixture_EKorRY(const double E, const double R, const double *Y, const double *gradRhogradRho, const double T_guess);
 
   void SetMixture_HPY(const double H, const double P, const double* Y, const double T_guess);
@@ -79,9 +78,12 @@ class PengRobinson {
   inline const std::vector<double>& GetMolarDensities() const { return this->molar_density; }
 
   inline double GetT() const { return this->T; }
+  inline double* GetT_ptr() { return &T; }
   inline double GetP() const { return this->P; }
+  inline double* GetP_ptr() { return &P; }
   inline double GetPGD() const { return this->P_GD; }
   inline double GetRho() const { return this->rho; }
+  inline double* GetRho_ptr() { return &rho; }
   inline double GetZ() const { return this->Z; }
   inline double GetBv() const { return this->expansivity; }
   inline double GetCp(const bool molar=false) const { 
@@ -92,6 +94,7 @@ class PengRobinson {
     }
   }
   inline const std::vector<double> GetY() const { return this->Y; }
+  inline std::vector<double>* GetY_ptr() { return &Y; }
   inline const std::vector<double> GetX() const { return this->X; }
   inline std::vector<double> GetCSpec() { return this->c_spec; };
   inline const double GetX_TP(const int ids) const { return this->x_TP[ids]; }
@@ -826,7 +829,6 @@ class PengRobinson {
   inline int GetFlagVLE() const { return flag_vle; }
   inline int GetNiterSSI() const { return niter_ssi; }
 };
-}
 
 
 

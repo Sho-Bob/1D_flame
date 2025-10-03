@@ -9,4 +9,4 @@ target_include_directories(solver PUBLIC
   ${PROJECT_INCLUDE_DIRS}
 )
 
-target_link_libraries(solver numerics IO grid)
+target_link_libraries(solver numerics IO grid common physics)
