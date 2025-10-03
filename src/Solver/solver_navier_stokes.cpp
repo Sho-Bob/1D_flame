@@ -94,6 +94,8 @@ void NavierStokesSolver::initialize_profile(){
     // parameters
     double rho_max = this->input->getDoubleParam("rho_max");
     double rho_min = this->input->getDoubleParam("rho_min");
+    double u_init = this->input->getDoubleParam("u_init");
+    double p_init = this->input->getDoubleParam("p_init");
 
     std::vector<double> rho_vec(this->n[0]);
 

@@ -41,6 +41,16 @@ std::string Input::getStringParam(const std::string& param_name) {
   return line;
 }
 
+std::string Input::getStringParam(const std::string& param_name, const std::string& default_value) {
+  std::string line;
+  try {
+    line = this->config[param_name].value_or(default_value);
+  } catch (const std::exception& e) {
+    line = default_value;
+  }
+  return line;
+}
+
 double Input::getDoubleParam(const std::string& param_name) {
   double value = 0.0;
   try {
@@ -48,6 +58,16 @@ double Input::getDoubleParam(const std::string& param_name) {
   } catch (const std::exception& e) {
     std::cerr << "Error reading parameter '" << param_name << "': " << e.what() << std::endl;
     value = 0.0;
+  }
+  return value;
+}
+
+double Input::getDoubleParam(const std::string& param_name, double default_value) {
+  double value = default_value;
+  try {
+    value = this->config[param_name].value_or(default_value);
+  } catch (const std::exception& e) {
+    value = default_value;
   }
   return value;
 }
@@ -60,6 +80,16 @@ int Input::getIntParam(const std::string& param_name) {
   } catch (const std::exception& e) {
     std::cerr << "Error reading parameter '" << param_name << "': " << e.what() << std::endl;
     value = 0;
+  }
+  return value;
+}
+
+int Input::getIntParam(const std::string& param_name, int default_value) {
+  int value = default_value;
+  try {
+    value = this->config[param_name].value_or(default_value);
+  } catch (const std::exception& e) {
+    value = default_value;
   }
   return value;
 }
