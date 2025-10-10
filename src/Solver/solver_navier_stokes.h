@@ -21,6 +21,10 @@ class NavierStokesSolver : public Solver { // derived class for BurgerSolver
     // update mark_double_flux
     void update_double_flux();
 
+    // checks for pressure, temperature, density
+    void do_checks() override;
+
+    void update_spectral_radius() override;
   private:
     // conservatives
     double* rho; // density

@@ -19,6 +19,9 @@ class LinearAdvectionSolver : public Solver { // derived class for LinearAdvecti
     void rhs() override;
     void output() override;
 
+    void do_checks() override;
+
+    void update_spectral_radius() override;
   private:
 
     double* phi;

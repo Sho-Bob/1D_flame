@@ -156,3 +156,25 @@ void LinearAdvectionSolver::output() {
 
   this->write_cv_data("phi", this->phi);
 } // end output
+
+void LinearAdvectionSolver::do_checks() {
+  std::cout << " ============== do_checks() =============== " << std::endl;
+  std::cout << " Time: " << this->t << ", Step: " << this->step << std::endl;
+  std::cout << " Param MIN:MAX " << std::endl;
+
+  this->dump_min_max(this->phi, "PHI");
+  this->dump_min_max(this->spectral_radius, "COURANT");
+  FOR_ICV_G(0) {
+    if (this->phi[icv] != this->phi[icv]) {
+      std::cerr << "NaN detected in phi at cell " << icv << std::endl;
+      assert(false);
+    }
+  }
+  std::cout << " ========================================= " << std::endl;
+} // end do_checks
+
+void LinearAdvectionSolver::update_spectral_radius() {
+  FOR_ICV(0) {
+    this->spectral_radius[icv] = std::abs(this->U[icv]);
+  }
+} // end update_spectral_radius

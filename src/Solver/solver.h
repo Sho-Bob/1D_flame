@@ -38,7 +38,23 @@ class Solver { // base clas for Solver
     // output solution to file
     virtual void output() {};
 
+    // do checks during steps
+    virtual void do_checks() {};
+
+    // write data to hdf file
     void write_cv_data(const std::string& var_name, const double* data);
+
+    // get min max of a variable
+    void get_min_max(const double* data, double& min_val, double& max_val);
+    //
+    // dump min max
+    void dump_min_max(const double* data, const std::string& var_name);
+
+    // update time step and eval CFL
+    void update_dt();
+
+    // update spectral radius
+    virtual void update_spectral_radius() {};
   protected:
     // =================================================
     // Input
@@ -101,6 +117,10 @@ class Solver { // base clas for Solver
     // =================================================
     std::string output_file;
     int output_interval = 10; // output every n time steps
+    int check_interval = 1; // do checks every n time steps
+    // =================================================
+    double* spectral_radius;
+    // =================================================
 
 };
 

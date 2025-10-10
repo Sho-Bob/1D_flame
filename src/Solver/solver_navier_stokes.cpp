@@ -330,9 +330,9 @@ void NavierStokesSolver::rhs(){
       m_gammaS = this->gammaS[icv0]; m_e0S = this->e0S[icv0];
       // get sos and rhoE based on reconstructed p, rho, U
       sosL_fa = std::sqrt(m_gammaS * pL_fa / rhoL_fa);
-      rhoE_L_fa = pL_fa / (m_gammaS - 1.0) + 0.5 * rhoL_fa * (this->UL[0][ifa] * this->UL[0][ifa] + m_e0S);
+      rhoE_L_fa = pL_fa / (m_gammaS - 1.0) + rhoL_fa * (0.5 * this->UL[0][ifa] * this->UL[0][ifa] + m_e0S);
       sosR_fa = std::sqrt(m_gammaS * pR_fa / rhoR_fa);
-      rhoE_R_fa = pR_fa / (m_gammaS - 1.0) + 0.5 * rhoR_fa * (this->UR[0][ifa] * this->UR[0][ifa] + m_e0S);
+      rhoE_R_fa = pR_fa / (m_gammaS - 1.0) + rhoR_fa * (0.5 * this->UR[0][ifa] * this->UR[0][ifa] + m_e0S);
       // riemann solver
       riemann_solver::HLLC(
           Frho0, Frhou0, FrhoE0, Frho_scalars0,
@@ -356,9 +356,9 @@ void NavierStokesSolver::rhs(){
       m_gammaS = this->gammaS[icv1]; m_e0S = this->e0S[icv1];
       // get sos and rhoE based on reconstructed p, rho, U
       sosL_fa = std::sqrt(m_gammaS * pL_fa / rhoL_fa);
-      rhoE_L_fa = pL_fa / (m_gammaS - 1.0) + 0.5 * rhoL_fa * (this->UL[0][ifa] * this->UL[0][ifa] + m_e0S);
+      rhoE_L_fa = pL_fa / (m_gammaS - 1.0) + rhoL_fa * (0.5 * this->UL[0][ifa] * this->UL[0][ifa] + m_e0S);
       sosR_fa = std::sqrt(m_gammaS * pR_fa / rhoR_fa);
-      rhoE_R_fa = pR_fa / (m_gammaS - 1.0) + 0.5 * rhoR_fa * (this->UR[0][ifa] * this->UR[0][ifa] + m_e0S);
+      rhoE_R_fa = pR_fa / (m_gammaS - 1.0) + rhoR_fa * (0.5 * this->UR[0][ifa] * this->UR[0][ifa] + m_e0S);
       // riemann solver
       riemann_solver::HLLC(
           Frho1, Frhou1, FrhoE1, Frho_scalars1,
@@ -411,6 +411,9 @@ void NavierStokesSolver::update_primitives() {
       this->p[icv] = (this->gammaS[icv] - 1) *
         (this->rhoE[icv] - this->rho[icv] * this->e0S[icv] -
          0.5 * this->rho[icv] * ukuk);
+      if (std::fabs(this->p[icv] -  50e5) / 50e5 > 1e-6) {
+        std::cout << "icv = " << icv << ", p = " << this->p[icv] << std::endl;
+      }
       this->Mixture->SetMixture_PRY(this->p[icv], this->rho[icv], &this->Y[0][icv]);
       double e = this->Mixture->GetE();
       // need to overwrite rhoE if end of time step
@@ -468,3 +471,52 @@ void NavierStokesSolver::output(){
 
 } // end output
 
+// ==============================================================
+// \brief: check for NaN and other issues
+// ==============================================================
+void NavierStokesSolver::do_checks() {
+  // get min max of rho, p, T
+  std::cout << " ============== do_checks() =============== " << std::endl;
+  std::cout << " Time: " << this->t << ", Step: " << this->step << std::endl;
+  std::cout << " Param MIN:MAX " << std::endl;
+
+
+  int num_double_flux = 0;
+  FOR_ICV(0) {
+    if (this->mark_double_flux[icv] == 1) num_double_flux++;
+    // density
+    if (this->rho[icv] != this->rho[icv] || this->rho[icv] < 1e-12) {
+      printf("icv = %d, rho = %g, p = %g, T = %g\n", icv, this->rho[icv], this->p[icv], this->T[icv]);
+      throw std::runtime_error("non-physical density at icv: " + std::to_string(icv));
+    }
+
+    // pressure
+    if (this->p[icv] != this->p[icv] || this->p[icv] < 1e-12) {
+      printf("icv = %d, rho = %g, p = %g, T = %g\n", icv, this->rho[icv], this->p[icv], this->T[icv]);
+      throw std::runtime_error("non-physical pressure at icv: " + std::to_string(icv));
+    }
+    // temperature
+    if (this->T[icv] != this->T[icv] || this->T[icv] < 1e-12) {
+      printf("icv = %d, rho = %g, p = %g, T = %g\n", icv, this->rho[icv], this->p[icv], this->T[icv]);
+      throw std::runtime_error("non-physical temperature at icv: " + std::to_string(icv));
+    }
+
+  } // end for icv
+  std::cout << " Number of cells using double flux: " << num_double_flux << " out of " << this->n[0] << std::endl;
+  // dump stuff
+  this->dump_min_max(this->rho, "rho");
+  this->dump_min_max(this->p, "p");
+  this->dump_min_max(this->T, "T");
+  FOR_IDIM this->dump_min_max(this->U[iDim], "U" + std::to_string(iDim));
+
+  this->dump_min_max(this->spectral_radius, "COURANT");
+  std::cout << " ========================================= " << std::endl;
+} // end do_checks
+
+void NavierStokesSolver::update_spectral_radius() {
+  FOR_ICV(0) {
+    double ukuk = 0.0;
+    FOR_IDIM ukuk += this->U[iDim][icv] * this->U[iDim][icv];
+    this->spectral_radius[icv] = std::sqrt(ukuk) + this->sos[icv];
+  }
+} // end update_spectral_radius

@@ -20,12 +20,16 @@ void Solver::run_solver(){
   bool done = false;
   while (!done) {
 
+    // update time step if needed and calculate spectral raidius
+    this->update_dt();
+
     if (this->step % this->output_interval == 0 || this->t >= this->t_end)
       this->output();
     // adjust time step based on cfl condition
     for (int v = 0; v < this->num_vars; ++v) {
       FOR_ICV_G(0) this->conservatives_old[v][icv] = this->conservatives[v][icv];
     }
+
 
     for (int idrk = 0; idrk < this->order_time; ++idrk) {
       this->rk_step = idrk; // update this
@@ -39,12 +43,15 @@ void Solver::run_solver(){
       // \brief: update conservatives based on rk step
       this->update_primitives();
     }
-    // \brief: update conservatives
 
-    // advance time
+    // advance time and step
     this->step++;
     this->t += this->dt;
     // printf("Step %d, Time = %f, dt = %f\n", this->step, this->t, this->dt);
+    // do checks
+    if (this->step % this->check_interval == 0) this->do_checks();
+
+    // evaluate stopping criteria
     done = (this->t > this->t_end || this->step > this->max_steps);
   }
 
@@ -79,6 +86,17 @@ void Solver::initialize(){
 
   this->output_file = this->input->getStringParam("output_file", "output.h5");
   this->output_interval = this->input->getIntParam("output_interval", 10);
+  this->check_interval = this->input->getIntParam("check_interval", 1);
+}
+
+void Solver::update_dt() {
+  this->update_spectral_radius();
+  double max_spectral_radius, min_spectral_radius;
+  this->get_min_max(this->spectral_radius, min_spectral_radius, max_spectral_radius);
+  // update dt based on cfl condition
+  if (this->time_stepping_scheme == "cfl") {
+    this->dt = this->cfl * this->dx / max_spectral_radius;
+  }
 }
 
 void Solver::initialize_arrays() {
@@ -104,6 +122,7 @@ void Solver::initialize_arrays() {
     }
   }
 
+  this->spectral_radius = new double[this->n_tot[0]];
 } // end of initialize_arrays
 
 void Solver::apply_bc(){
@@ -137,7 +156,7 @@ void Solver::initialize_profile(){
 // ==============================================================
 void Solver::pre_rhs() {
   for (int v = 0; v < this->num_vars; ++v) {
-    FOR_ICV_G(v) this->rhs_conservatives[v][icv] = 0.0;
+    FOR_ICV(0) this->rhs_conservatives[v][icv] = 0.0;
   }
 } // end pre_rhs
 
@@ -220,6 +239,22 @@ void burgers_initialize(std::vector<double>& u, int N, double x0, double x1, dou
     }
     Apply_BC(u,N,ibd);
 }
+
+void Solver::get_min_max(const double* data, double& min_val, double& max_val){
+    min_val = data[this->num_boundary_points];
+    max_val = data[this->num_boundary_points];
+    #pragma omp parallel for
+    FOR_ICV(0){
+        if (data[icv] < min_val) min_val = data[icv];
+        if (data[icv] > max_val) max_val = data[icv];
+    }
+} // end get_min_max
+
+void Solver::dump_min_max(const double* data, const std::string& var_name){
+    double min_val, max_val;
+    this->get_min_max(data, min_val, max_val);
+    std::cout << " " << var_name << " >>  " << min_val << ":" << max_val << std::endl;
+} // end get_min_max
 
 void Apply_BC(std::vector<double>& u, int N, int ibd){
     /// Neumann boundary conditions
