@@ -20,12 +20,15 @@ void Solver::run_solver(){
   bool done = false;
   while (!done) {
 
+    if (this->step % this->output_interval == 0 || this->t >= this->t_end)
+      this->output();
     // adjust time step based on cfl condition
     for (int v = 0; v < this->num_vars; ++v) {
       FOR_ICV_G(0) this->conservatives_old[v][icv] = this->conservatives[v][icv];
     }
 
-    for (int idrk = 0; idrk < 3; ++idrk) {
+    for (int idrk = 0; idrk < this->order_time; ++idrk) {
+      this->rk_step = idrk; // update this
       // \brief: reconstruction, apply BC
       this->pre_rhs();
       // \brief: calculate the rhs
@@ -33,14 +36,15 @@ void Solver::run_solver(){
       // \brief: update conservatives based on rk step
       this->update_conservatives(idrk);
 
+      // \brief: update conservatives based on rk step
+      this->update_primitives();
     }
     // \brief: update conservatives
-    this->output();
 
     // advance time
     this->step++;
     this->t += this->dt;
-    printf("Step %d, Time = %f, dt = %f\n", this->step, this->t, this->dt);
+    // printf("Step %d, Time = %f, dt = %f\n", this->step, this->t, this->dt);
     done = (this->t > this->t_end || this->step > this->max_steps);
   }
 
@@ -51,6 +55,8 @@ void Solver::initialize(){
   this->input = new Input("input.toml");
   
   // get time stepping parameters
+  // time integration method
+  this->order_time = this->input->getIntParam("order_time", 3);
   this->t_end = this->input->getDoubleParam("t_end");
   this->max_steps = this->input->getIntParam("max_steps");
   this->time_stepping_scheme = this->input->getStringParam("time_stepping_scheme");
@@ -62,7 +68,43 @@ void Solver::initialize(){
     throw std::runtime_error("Unknown time_stepping_scheme: " + this->time_stepping_scheme);
   }
 
+  this->initialize_grid();
+
+  this->reconstruction_method = this->input->getStringParam("reconstruction_method", "FirstOrder");
+  if (this->reconstruction_method == "MUSCL") {
+    // set kappa for MUSCL
+    double kappa = this->input->getDoubleParam("kappa_muscl", 1.0/3.0);
+    this->reconstruction->set_kappa_muscl(kappa);
+  }
+
+  this->output_file = this->input->getStringParam("output_file", "output.h5");
+  this->output_interval = this->input->getIntParam("output_interval", 10);
 }
+
+void Solver::initialize_arrays() {
+  this->conservatives = new double*[this->num_vars];
+  this->conservatives_old = new double*[this->num_vars];
+  this->rhs_conservatives = new double*[this->num_vars];
+  if (this->order_time == 4) { // RK4
+    this->k1 = new double*[this->num_vars];
+    this->k2 = new double*[this->num_vars];
+    this->k3 = new double*[this->num_vars];
+    this->k4 = new double*[this->num_vars];
+  }
+
+  FOR_VAR {
+    this->conservatives[v] = new double[this->n_tot[0]];
+    this->conservatives_old[v] = new double[this->n_tot[0]];
+    this->rhs_conservatives[v] = new double[this->n_tot[0]];
+    if (this->order_time == 4) { // RK4
+      this->k1[v] = new double[this->n_tot[0]];
+      this->k2[v] = new double[this->n_tot[0]];
+      this->k3[v] = new double[this->n_tot[0]];
+      this->k4[v] = new double[this->n_tot[0]];
+    }
+  }
+
+} // end of initialize_arrays
 
 void Solver::apply_bc(){
     // to be implemented in derived classes
@@ -70,12 +112,11 @@ void Solver::apply_bc(){
 }
 
 void Solver::initialize_grid(){
-  // TODO: implement TOML reading of these things
-  // for now, just hardcode some values
-  this->num_dim = 1; 
+  this->num_dim = this->input->getIntParam("num_dim", 1);
   this->num_boundary_points = 4; // ghost cells
-  this->nx = 101;
-  this->x0 = 0.0; this->x1 = 1.0;
+  this->nx = this->input->getIntParam("nx", 101);
+  this->x0 = this->input->getDoubleParam("x0", 0.0);
+  this->x1 = this->input->getDoubleParam("x1", 1.0);
   this->mesh = new Grid(this->nx, this->num_boundary_points, this->x0, this->x1);
   // Initialize and set pointers
   this->n = this->mesh->get_n_ptr();
@@ -112,24 +153,63 @@ void Solver::rhs() {
 // ==============================================================
 void Solver::update_conservatives(const int idrk) {
   for (int v = 0; v < this->num_vars; ++v) {
+    if (this->order_time == 3) { // SSP-RK3
 #pragma omp parallel for
-    FOR_ICV(0) {
-      int i = icv;
-      if (idrk == 0) { // stage 1
-        this->conservatives[v][i] += this->dt / this->dx * this->rhs_conservatives[v][i];
-      } else if (idrk == 1) { // stage 2
-        this->conservatives[v][i] = 0.75 * this->conservatives_old[v][i] + 0.25 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i]);
-      } else if (idrk == 2) {
-        this->conservatives[v][i] = (this->conservatives_old[v][i] + 2.0 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i])) / 3.0;
-      }
-      if (this->conservatives[v][i] != this->conservatives[v][i]) {
-        std::cerr << "NaN detected in conservatives at cell " << i << " variable " << v << std::endl;
-        std::cout << this->rhs_conservatives[v][i] << std::endl;
-        assert( false);
-      }
-    } // end of loop over icv
+      FOR_ICV(0) {
+        int i = icv;
+        if (idrk == 0) { // stage 1
+          this->conservatives[v][i] += this->dt / this->dx * this->rhs_conservatives[v][i];
+        } else if (idrk == 1) { // stage 2
+          this->conservatives[v][i] = 0.75 * this->conservatives_old[v][i] + 0.25 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i]);
+        } else if (idrk == 2) {
+          this->conservatives[v][i] = (this->conservatives_old[v][i] + 2.0 * (this->conservatives[v][i] + this->dt / this->dx * this->rhs_conservatives[v][i])) / 3.0;
+        }
+        if (this->conservatives[v][i] != this->conservatives[v][i]) {
+          std::cerr << "NaN detected in conservatives at cell " << i << " variable " << v << std::endl;
+          std::cout << this->rhs_conservatives[v][i] << std::endl;
+          assert( false);
+        }
+      } // end of loop over icv
+      // end of SSP-RK3
+    } else if (this->order_time == 4) { // RK4
+      FOR_ICV(0) {
+        int i = icv;
+        double dt_dx_rhs = this->dt / this->dx * this->rhs_conservatives[v][i];
+
+        if (idrk == 0) { // k1
+          this->k1[v][i] = dt_dx_rhs;
+          this->conservatives[v][i] = this->conservatives_old[v][i] + 0.5 * this->k1[v][i];
+        } else if (idrk == 1) { // k2
+          this->k2[v][i] = dt_dx_rhs;
+          this->conservatives[v][i] = this->conservatives_old[v][i] + 0.5 * this->k2[v][i];
+        } else if (idrk == 2) { // k3
+          this->k3[v][i] = dt_dx_rhs;
+          this->conservatives[v][i] = this->conservatives_old[v][i] + this->k3[v][i];
+        } else if (idrk == 3) { // k4 and final update
+          this->k4[v][i] = dt_dx_rhs;
+          this->conservatives[v][i] = this->conservatives_old[v][i]
+            + (1.0 / 6.0) * (this->k1[v][i] + 2.0 * this->k2[v][i]
+                + 2.0 * this->k3[v][i] + this->k4[v][i]);
+        }
+
+        if (std::isnan(this->conservatives[v][i])) {
+          std::cerr << "NaN detected in RK4 at cell " << i << " variable " << v << std::endl;
+          std::cout << this->rhs_conservatives[v][i] << std::endl;
+          assert(false);
+        }
+      } // end of loop over icv
+      // end of RK4
+    }
   }
 } // end update_conservatives
+
+void Solver::write_cv_data(const std::string& var_name, const double* data) {
+  IO::write_structured_mesh_timestep(this->output_file,
+      this->step,
+      std::vector<double>(data + this->num_boundary_points, data + this->num_boundary_points + this->n[0]),
+      this->n[0], 1, 1,
+      var_name);
+} // end update_primitives
 
 void burgers_initialize(std::vector<double>& u, int N, double x0, double x1, double dx, int ibd){
     #pragma omp parallel for

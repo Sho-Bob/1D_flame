@@ -21,6 +21,9 @@ void Physics::initialize() {
   this->T = this->eos->GetT_ptr();
   this->p = this->eos->GetP_ptr();
   this->Y = this->eos->GetY_ptr();
+  this->e = this->eos->GetE_ptr();
+
+  this->sos = this->eos->getSos_ptr();
 }
 
 Physics::~Physics() {

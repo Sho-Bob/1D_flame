@@ -23,17 +23,22 @@ namespace IO {
     H5File file(filename, H5F_ACC_RDWR);
     // Create a group for this timestep
     std::ostringstream grpname;
-    grpname << "/Timestep" << std::setw(4) << std::setfill('0') << timestep;
-    Group group = file.createGroup(grpname.str());
+    grpname << "/Timestep" << std::setw(6) << std::setfill('0') << timestep;
+    Group group;
+    if (H5Lexists(file.getId(), grpname.str().c_str(), H5P_DEFAULT)) {
+      group = file.openGroup(grpname.str());
+    } else {
+      group = file.createGroup(grpname.str());
+    }
 
     // Data dimensions
     hsize_t dims[3] = {nx, ny, nz};
     DataSpace space(3, dims);
 
     // Create and write u dataset
-    DataSet dset = group.createDataSet(var_name,
-        PredType::NATIVE_DOUBLE,
-        space);
+    DataSet dset;
+    dset = group.createDataSet(var_name, PredType::NATIVE_DOUBLE, space);
+
     dset.write(u.data(), PredType::NATIVE_DOUBLE);
 
   } // end of write_structured_mesh_timestep
@@ -50,10 +55,12 @@ namespace IO {
     hsize_t dims[3] = {nx, ny, nz};
     DataSpace space(3, dims);
 
-    // Create and write u dataset
+    // Create or open
     DataSet dset = file.createDataSet(var_name,
         PredType::NATIVE_DOUBLE,
         space);
+
+    // write data set in group
     dset.write(data, PredType::NATIVE_DOUBLE);
 
   }

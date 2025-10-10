@@ -26,6 +26,10 @@ class Solver { // base clas for Solver
     virtual void rhs();
     // \brief: update conservatives
     virtual void update_conservatives(const int idrk);
+    // \brief: update primitives
+    virtual void update_primitives() {};
+    // \brief: initialize arrays
+    virtual void initialize_arrays();
 
     // initialize grid and profile
     virtual void initialize_grid();
@@ -33,6 +37,8 @@ class Solver { // base clas for Solver
 
     // output solution to file
     virtual void output() {};
+
+    void write_cv_data(const std::string& var_name, const double* data);
   protected:
     // =================================================
     // Input
@@ -63,6 +69,7 @@ class Solver { // base clas for Solver
     // Numerics
     // =================================================
     Reconstruction* reconstruction; // reconstruction object
+    std::string reconstruction_method; // "FirstOrder", "WENOJS"
     // =================================================
     // solution variables
     // =================================================
@@ -75,6 +82,7 @@ class Solver { // base clas for Solver
     // time-stepping parameters
     // =================================================
     double dt; // time step size
+    int rk_step = 0;
     double t_end; // end time
     int num_time_steps; // number of time steps
     int step; // current time step
@@ -82,10 +90,18 @@ class Solver { // base clas for Solver
     double t; // current time
     double cfl; // CFL number
     std::string time_stepping_scheme; // "fix_dt", "CFL"
+    int order_time = 3; // SSP-RK3 or RK4
+    double **k1, **k2, **k3, **k4; // for RK4
     // =================================================
     // physics
     // =================================================
     Physics* Mixture;
+    // =================================================
+    // Output
+    // =================================================
+    std::string output_file;
+    int output_interval = 10; // output every n time steps
+
 };
 
 void burgers_initialize(std::vector<double>& u, int N, double x0, double x1, double dx, int ibd);

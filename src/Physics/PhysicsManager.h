@@ -22,9 +22,15 @@ class Physics {
       this->eos->SetMixture_PRY(p, rho, Y, T_guess, flash);
     }
 
+    void SetMixture_ERY(const double e, const double rho, const double* Y, const double T_guess = 300.0, const double P_guess = 1e5, const bool flash = true) {
+      this->eos->SetMixture_ERY(e, rho, Y, T_guess, P_guess, flash);
+    }
+
     double GetRho() { return *rho; }
     double GetT() { return *T; }
     double GetP() { return *p; }
+    double GetE() { return *e; } // specific internal energy
+    double GetSos() { return *sos; } // speed of sound
 
   private:
     PengRobinson* eos; // for now
@@ -37,6 +43,8 @@ class Physics {
     std::vector<double>* Y; // mass fractions
     double* X; // mole fractions
     double* rho;
+    double* e; // specific internal energy
+    double* sos; // speed of sound
 
 
 };

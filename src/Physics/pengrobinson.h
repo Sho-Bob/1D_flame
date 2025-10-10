@@ -84,6 +84,7 @@ class PengRobinson {
   inline double GetPGD() const { return this->P_GD; }
   inline double GetRho() const { return this->rho; }
   inline double* GetRho_ptr() { return &rho; }
+  inline double* GetE_ptr() { return &E_mass; }
   inline double GetZ() const { return this->Z; }
   inline double GetBv() const { return this->expansivity; }
   inline double GetCp(const bool molar=false) const { 
@@ -197,6 +198,7 @@ class PengRobinson {
   inline const std::vector<double> GetLij() const { return this->Lij; }
   inline const std::vector<double> GetLqi() const { return this->Lqi; }
   inline double getSos() const { return this->sos; }
+  inline double* getSos_ptr() { return &sos; }
   inline double getSoS2() const { return this->sos2; }
   // Estimate interface thickness and time scale
   inline void GetInterfaceThicknessEstimate(double* estimates) const {

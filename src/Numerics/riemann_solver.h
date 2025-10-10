@@ -15,6 +15,31 @@ namespace riemann_solver {
       const double lambda,
       const double* nVec, const int n_scal
       );
+
+  // Local Lax-Friedrichs Riemann solver for Euler equations
+  void LocalLaxFriedrichs(
+      double& Frho, double* Frhou, double& FrhoE, double* Frho_scalars,
+      const double P_L, const double P_R,
+      const double rho_L, const double rho_R, const double rhoE_L, const double rhoE_R,
+      const double sos_L, const double sos_R,
+      const double* Y_L, const double* Y_R,
+      const double* u_L, const double* u_R,
+      const double lambda,
+      const double* nVec, const int n_scal
+      );
+
+  // First Order Godunov
+  void FirstOrderGodunov(
+      double& Frho, double* Frhou, double& FrhoE, double* Frho_scalars,
+      const double P_L, const double P_R,
+      const double rho_L, const double rho_R, const double rhoE_L, const double rhoE_R,
+      const double sos_L, const double sos_R,
+      const double* Y_L, const double* Y_R,
+      const double* u_L, const double* u_R,
+      const double lambda,
+      const double* nVec, const int n_scal
+      );
+
 } // namespace riemann_solver
 
 #endif // RIEMANN_SOLVER_H

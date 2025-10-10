@@ -29,7 +29,6 @@ void BurgerSolver::initialize(){
   this->u = this->conservatives[0]; // alias for convenience
   this->uL = new double[this->nx + 1];
   this->uR = new double[this->nx + 1];
-  this->initialize_grid();
   this->initialize_profile();
   this->dt = 0.1 * this->dx; // initial time step size
 }

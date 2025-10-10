@@ -13,6 +13,7 @@ class LinearAdvectionSolver : public Solver { // derived class for LinearAdvecti
   public:
 
     void initialize() override;
+    void initialize_profile() override;
     void apply_bc() override;
     void pre_rhs() override;
     void rhs() override;

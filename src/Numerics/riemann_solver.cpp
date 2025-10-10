@@ -4,7 +4,9 @@
 
 #include <vector>
 #include <cmath>
+#include <cassert>
 #include <iostream>
+#include <stdio.h>
 
 
 namespace riemann_solver {
@@ -25,7 +27,7 @@ namespace riemann_solver {
       std::cout << "rho_L = " << rho_L << ", P_L = " << P_L << std::endl;
       std::cout << "rho_R = " << rho_R << ", P_R = " << P_R << std::endl;
       std::cout << "sos_L = " << sos_L << ", sos_R = " << sos_R << std::endl;
-      throw std::runtime_error("riemann_solver::HLLC: negative density, sos or pressure");
+      assert(false);
     }
 
     // set mixtures to get necessary quantities
@@ -79,7 +81,7 @@ namespace riemann_solver {
         std::cout << "P_L = " << P_L << ", P_R = " << P_R << std::endl;
         std::cout << "rho_L = " << rho_L << ", rho_R = " << rho_R << std::endl;
         std::cout << "sos_L = " << sos_L << ", sos_R = " << sos_R << std::endl;
-        exit(-1);
+        assert(false);
     }
     double pStar = P_L + rho_L * (SL - uN_L) * (S_star - uN_L);
 
@@ -112,10 +114,8 @@ namespace riemann_solver {
     } else if (S_star < 0 && 0 <= SR) {
       LOOP_l_N (5 + n_scal) Flux[l] = Flux_R[l] + SR * (consv_R_star[l] - consv_R[l]);
     } else {
-      throw std::runtime_error("riemann_solver::HLLC: "
-          "Invalid wave speed configuration. "
-          "SL = " + std::to_string(SL) + ", S_star = " + std::to_string(S_star) +
-          ", SR = " + std::to_string(SR));
+      std::cerr << "riemann_solver::HLLC: something wrong with wave speeds" << std::endl;
+      assert(false);
     }
 
     /*
@@ -133,5 +133,154 @@ namespace riemann_solver {
       Frho_scalars[l] = Flux[5 + l];
     }
   } // end of HLLC
+
+  void LocalLaxFriedrichs(
+      double& Frho, double* Frhou, double& FrhoE, double* Frho_scalars,
+      const double P_L, const double P_R,
+      const double rho_L, const double rho_R, const double rhoE_L, const double rhoE_R,
+      const double sos_L, const double sos_R,
+      const double* Y_L, const double* Y_R,
+      const double* u_L, const double* u_R,
+      const double lambda,
+      const double* nVec, const int n_scal
+      ) {
+    // check positvity of the values first
+    if (rho_L <= 0.0 || rho_R <= 0.0 || P_L < 0.0 || P_R < 0.0 || sos_L < 0.0 || sos_R < 0.0) {
+      std::cerr << "riemann_solver::LocalLaxFriedrichs: negative density, sos or pressure" << std::endl;
+      std::cout << "rho_L = " << rho_L << ", P_L = " << P_L << std::endl;
+      std::cout << "rho_R = " << rho_R << ", P_R = " << P_R << std::endl;
+      std::cout << "sos_L = " << sos_L << ", sos_R = " << sos_R << std::endl;
+      printf("riemann_solver::LocalLaxFriedrichs: negative density, sos or pressure");
+      assert(false);
+    }
+
+    // set mixtures to get necessary quantities
+    // Left-state
+    double uN_L = DOT_PRODUCT(u_L, nVec);
+    double u_norm_L = std::sqrt(DOT_PRODUCT(u_L, u_L));
+
+    // Right-state
+    double uN_R = DOT_PRODUCT(u_R, nVec);
+    double u_norm_R = std::sqrt(DOT_PRODUCT(u_R, u_R));
+
+    double consv_L[5 + n_scal];
+    double Flux_L [5 + n_scal];
+    consv_L[0] = rho_L;
+    Flux_L[0] = rho_L * uN_L;
+    LOOP_I3 {
+      consv_L[i + 1] = rho_L * u_L[i];
+      // consv_L[i + 1] = rho_L * (u_L[i] + (uN_L - u_L[0]) * nVec[i]); // fix the normal velocity term
+      Flux_L[i + 1] = rho_L * uN_L * u_L[i] + P_L * nVec[i];
+    }
+    consv_L[4] = rhoE_L;
+    Flux_L[4] = (rhoE_L + P_L) * uN_L;
+    LOOP_l_N(n_scal) {
+      consv_L[5 + l] = rho_L * Y_L[l];
+      Flux_L[5 + l] = rho_L * uN_L * Y_L[l];
+    }
+
+    double consv_R[5 + n_scal];
+    double Flux_R [5 + n_scal];
+    consv_R[0] = rho_R;
+    Flux_R[0] = rho_R * uN_R;
+    LOOP_I3 {
+      consv_R[i + 1] = rho_R * u_R[i];
+      // consv_R[i + 1] = rho_R * (u_R[i] + (uN_R - u_R[0]) * nVec[i]); // fix the normal velocity term
+      Flux_R[i + 1] = rho_R * uN_R * u_R[i] + P_R * nVec[i];
+    }
+    consv_R[4] = rhoE_R;
+    Flux_R[4] = (rhoE_R + P_R) * uN_R;
+    LOOP_l_N(n_scal) {
+      consv_R[5 + l] = rho_R * Y_R[l];
+      Flux_R[5 + l] = rho_R * uN_R * Y_R[l];
+    }
+
+    double Flux[5 + n_scal];
+    LOOP_l_N (5 + n_scal) {
+      Flux[l] = 0.5 * (Flux_L[l] + Flux_R[l]) - 0.5 * lambda * (consv_R[l] - consv_L[l]);
+    }
+
+    // set fluxes
+    Frho = Flux[0]; Frhou[0] = Flux[1]; Frhou[1] = Flux[2]; Frhou[2] = Flux[3];
+    FrhoE = Flux[4];
+    LOOP_l_N (n_scal) {
+      Frho_scalars[l] = Flux[5 + l];
+    }
+  } // end of LocalLaxFriedrichs
+
+  // First Order Godunov
+  void FirstOrderGodunov(
+      double& Frho, double* Frhou, double& FrhoE, double* Frho_scalars,
+      const double P_L, const double P_R,
+      const double rho_L, const double rho_R, const double rhoE_L, const double rhoE_R,
+      const double sos_L, const double sos_R,
+      const double* Y_L, const double* Y_R,
+      const double* u_L, const double* u_R,
+      const double lambda,
+      const double* nVec, const int n_scal
+      ) {
+    // check positvity of the values first
+    if (rho_L <= 0.0 || rho_R <= 0.0 || P_L < 0.0 || P_R < 0.0 || sos_L < 0.0 || sos_R < 0.0) {
+      std::cerr << "riemann_solver::FirstOrderGodunov: negative density, sos or pressure" << std::endl;
+      std::cout << "rho_L = " << rho_L << ", P_L = " << P_L << std::endl;
+      std::cout << "rho_R = " << rho_R << ", P_R = " << P_R << std::endl;
+      std::cout << "sos_L = " << sos_L << ", sos_R = " << sos_R << std::endl;
+      printf("riemann_solver::FirstOrderGodunov: negative density, sos or pressure\n");
+      assert(false);
+    }
+
+    // set mixtures to get necessary quantities
+    // Left-state
+    double uN_L = DOT_PRODUCT(u_L, nVec);
+    double u_norm_L = std::sqrt(DOT_PRODUCT(u_L, u_L));
+
+    // Right-state
+    double uN_R = DOT_PRODUCT(u_R, nVec);
+    double u_norm_R = std::sqrt(DOT_PRODUCT(u_R, u_R));
+
+    double consv_L[5 + n_scal];
+    double Flux_L [5 + n_scal];
+    consv_L[0] = rho_L;
+    Flux_L[0] = rho_L * uN_L;
+    LOOP_I3 {
+      consv_L[i + 1] = rho_L * u_L[i];
+      // consv_L[i + 1] = rho_L * (u_L[i] + (uN_L - u_L[0]) * nVec[i]); // fix the normal velocity term
+      Flux_L[i + 1] = rho_L * uN_L * u_L[i] + P_L * nVec[i];
+    }
+    consv_L[4] = rhoE_L;
+    Flux_L[4] = (rhoE_L + P_L) * uN_L;
+    LOOP_l_N(n_scal) {
+      consv_L[5 + l] = rho_L * Y_L[l];
+      Flux_L[5 + l] = rho_L * uN_L * Y_L[l];
+    }
+
+    double consv_R[5 + n_scal];
+    double Flux_R [5 + n_scal];
+    consv_R[0] = rho_R;
+    Flux_R[0] = rho_R * uN_R;
+    LOOP_I3 {
+      consv_R[i + 1] = rho_R * u_R[i];
+      // consv_R[i + 1] = rho_R * (u_R[i] + (uN_R - u_R[0]) * nVec[i]); // fix the normal velocity term
+      Flux_R[i + 1] = rho_R * uN_R * u_R[i] + P_R * nVec[i];
+    }
+    consv_R[4] = rhoE_R;
+    Flux_R[4] = (rhoE_R + P_R) * uN_R;
+    LOOP_l_N(n_scal) {
+      consv_R[5 + l] = rho_R * Y_R[l];
+      Flux_R[5 + l] = rho_R * uN_R * Y_R[l];
+    }
+
+    double Flux[5 + n_scal];
+    LOOP_l_N (5 + n_scal) {
+      Flux[l] = 0.5 * (Flux_L[l] + Flux_R[l]) - 0.5 * lambda * (consv_R[l] - consv_L[l]);
+    }
+
+    // set fluxes
+    Frho = Flux[0]; Frhou[0] = Flux[1]; Frhou[1] = Flux[2]; Frhou[2] = Flux[3];
+    FrhoE = Flux[4];
+    LOOP_l_N (n_scal) {
+      Frho_scalars[l] = Flux[5 + l];
+    }
+  } // end of FirstOrderGodunov
 
 } // namespace riemann_solver

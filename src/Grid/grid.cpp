@@ -4,7 +4,7 @@
 Grid::Grid(int nx, int num_boundary_points, double x0, double x1) : num_boundary_points(num_boundary_points), x0(x0), x1(x1) {
   this->xmin = x0; this->xmax = x1;
   this->num_dim = 1;  // hard coded
-  this->dx = (this->xmax - this->xmin) / (static_cast<double>(nx) - 1.0);
+  this->dx = (this->xmax - this->xmin) / (static_cast<double>(nx));
 
   this->coordinates = new double*[num_dim];
   this->n = new int[num_dim];
@@ -17,16 +17,16 @@ Grid::Grid(int nx, int num_boundary_points, double x0, double x1) : num_boundary
 
     // internal cells
     for (int i = this->num_boundary_points; i < this->num_boundary_points + this->n[iDim]; ++i) {
-      coordinates[iDim][i] = this->xmin + (i - this->num_boundary_points) * dx;
+      coordinates[iDim][i] = this->xmin + 0.5 * dx + (i - this->num_boundary_points) * dx;
     }
     // fill in ghost cells
     // left ghost cells
     for (int i = 0; i < this->num_boundary_points; ++i) {
-      coordinates[iDim][i] = this->xmin - dx * (this->num_boundary_points - i);
+      coordinates[iDim][i] = this->xmin - 0.5 * dx - dx * (this->num_boundary_points - i);
     }
     // right ghost cells
     for (int i = this->num_boundary_points + this->n[iDim]; i < this->n_tot[iDim]; ++i) {
-      coordinates[iDim][i] = this->xmax + dx * (i - (this->num_boundary_points + this->n[iDim] - 1));
+      coordinates[iDim][i] = this->xmax + 0.5 * dx + dx * (i - (this->num_boundary_points + this->n[iDim] - 1));
     }
 
     this->Delta[iDim] = this->coordinates[iDim][1] - this->coordinates[iDim][0];
