@@ -183,6 +183,9 @@ void NavierStokesSolver::apply_bc(){
     this->rho[i] = this->rho[this->n[0] + i];
     this->rho[this->num_boundary_points + this->n[0] + i] = this->rho[this->num_boundary_points + i];
 
+    this->T[i] = this->T[this->n[0] + i];
+    this->T[this->num_boundary_points + this->n[0] + i] = this->T[this->num_boundary_points + i];
+
     this->p[i] = this->p[this->n[0] + i];
     this->p[this->num_boundary_points + this->n[0] + i] = this->p[this->num_boundary_points + i];
 

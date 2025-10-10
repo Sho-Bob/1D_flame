@@ -172,6 +172,7 @@ void Solver::update_conservatives(const int idrk) {
       } // end of loop over icv
       // end of SSP-RK3
     } else if (this->order_time == 4) { // RK4
+#pragma omp parallel for
       FOR_ICV(0) {
         int i = icv;
         double dt_dx_rhs = this->dt / this->dx * this->rhs_conservatives[v][i];
